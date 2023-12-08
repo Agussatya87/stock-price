@@ -6,24 +6,17 @@ from prophet import Prophet
 from prophet.plot import plot_plotly
 from plotly import graph_objs as go
 
-# Set page config for better mobile responsiveness
-st.set_page_config(
-    page_title="Prediksi Harga Saham",
-    page_icon=":chart_with_upwards_trend:",
-    layout="wide",
-)
-
 START = "2014-01-01"
 TODAY = date.today().strftime("%Y-%m-%d")
 
 st.title('Prediksi Harga Saham')
 
-# Wrap sliders in an expander for better mobile layout
-with st.expander("Options"):
-    stocks = ('BBRI.JK', 'BBCA.JK', 'BBNI.JK', 'BMRI.JK', 'BRIS.JK')
-    selected_stock = st.selectbox('Select dataset for prediction', stocks)
-    n_years = st.slider('Years of prediction:', 1, 5)
-    period = n_years * 365
+stocks = ('BBRI.JK', 'BBCA.JK', 'BBNI.JK', 'BMRI.JK', 'BRIS.JK')
+selected_stock = st.selectbox('Select dataset for prediction', stocks)
+
+n_years = st.slider('Years of prediction:', 1, 5)
+period = n_years * 365
+
 
 @st.cache
 def load_data(ticker):
@@ -31,6 +24,7 @@ def load_data(ticker):
     data.reset_index(inplace=True)
     return data
 
+	
 data_load_state = st.text('Loading data...')
 data = load_data(selected_stock)
 data_load_state.text('Loading data... done!')
@@ -38,19 +32,14 @@ data_load_state.text('Loading data... done!')
 st.subheader('Raw data')
 st.write(data.tail())
 
-# Inside the plot_raw_data() function, update the layout for better mobile responsiveness
+# Plot raw data
 def plot_raw_data():
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=data['Date'], y=data['Open'], name="stock_open"))
-    fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'], name="stock_close"))
-    fig.layout.update(
-        title_text='Time Series data with Rangeslider',
-        xaxis_rangeslider_visible=True,
-        autosize=True,  # Enable autosize for better responsiveness
-        margin=dict(l=0, r=0, t=30, b=0),  # Adjust margin for better layout
-    )
-    st.plotly_chart(fig)
-
+	fig = go.Figure()
+	fig.add_trace(go.Scatter(x=data['Date'], y=data['Open'], name="stock_open"))
+	fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'], name="stock_close"))
+	fig.layout.update(title_text='Time Series data with Rangeslider', xaxis_rangeslider_visible=True)
+	st.plotly_chart(fig)
+	
 plot_raw_data()
 
 # Predict forecast with Prophet.
