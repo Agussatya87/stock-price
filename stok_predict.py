@@ -1,70 +1,87 @@
 import streamlit as st
-from datetime import date
-
-import yfinance as yf
 from prophet import Prophet
 from prophet.plot import plot_plotly
 from plotly import graph_objs as go
+import yfinance as yf
+from datetime import date
 
-START = "2014-01-01"
-TODAY = date.today().strftime("%Y-%m-%d")
+st.set_page_config(layout='wide', initial_sidebar_state='expanded')
 
-st.title('Prediksi Harga Saham')
+st.sidebar.header('Dashboard')
 
-stocks = ('BBRI.JK', 'BBCA.JK', 'BBNI.JK', 'BMRI.JK', 'BRIS.JK')
-selected_stock = st.selectbox('Select dataset for prediction', stocks)
+st.title('BRI Stock Forecast Web')
 
-n_years = st.slider('Years of prediction:', 1, 5)
-period = n_years * 365
+stock = ('BBRI.JK')
 
+n_months = 1
+period = 30*n_months
 
-@st.cache
+@st.cache_data
 def load_data(ticker):
+    START = "2014-01-01"
+    TODAY = date.today().strftime("%Y-%m-%d")
     data = yf.download(ticker, START, TODAY)
     data.reset_index(inplace=True)
     return data
 
-	
-data_load_state = st.text('Loading data...')
-data = load_data(selected_stock)
-data_load_state.text('Loading data... done!')
+data = load_data(stock)
 
+# Display raw data
 st.subheader('Raw data')
-st.write(data.tail())
+st.write(data.tail(30))
 
 # Plot raw data
 def plot_raw_data():
-	fig = go.Figure()
-	fig.add_trace(go.Scatter(x=data['Date'], y=data['Open'], name="stock_open"))
-	fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'], name="stock_close"))
-	fig.layout.update(
-		title_text='Time Series data with Rangeslider',
-        	xaxis_rangeslider_visible=True,
-        	autosize=True,  # Set autosize to make the plot responsive
-        	margin=dict(l=0, r=0, b=0, t=40),  # Adjust margins for better visibility on mobile
-        	height=400,  # Set an initial height
-	)
-	st.plotly_chart(fig)
-	
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'], name="stock_close"))
+    fig.layout.update(title_text='Time Series data', xaxis_rangeslider_visible=True)
+    st.plotly_chart(fig)
+
 plot_raw_data()
 
-# Predict forecast with Prophet.
+def plot_raw_data_ma100(data):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'], name="stock_close"))
+    fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'].rolling(100).mean(), name="MA 100"))
+    fig.update_layout(title_text='Time Series data vs Moving Average 100', xaxis_rangeslider_visible=True)
+    st.plotly_chart(fig)
+
+plot_raw_data_ma100(data)
+
+def plot_raw_data_ma(data):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'], name="stock_close"))
+    fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'].rolling(100).mean(), name="MA 100"))
+    fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'].rolling(200).mean(), name="MA 200"))
+    fig.update_layout(title_text='Time Series data vs Moving Average 100 vs Moving Average 200', xaxis_rangeslider_visible=True)
+    st.plotly_chart(fig)
+
+plot_raw_data_ma(data)
+
+
+# Load saved model
 df_train = data[['Date','Close']]
 df_train = df_train.rename(columns={"Date": "ds", "Close": "y"})
 
-m = Prophet()
-m.fit(df_train)
-future = m.make_future_dataframe(periods=period)
-forecast = m.predict(future)
+model = Prophet()
+model.fit(df_train)
 
-# Show and plot forecast
-st.subheader('Forecast data')
-st.write(forecast.tail())
-    
-st.write(f'Forecast plot for {n_years} years')
-fig1 = plot_plotly(m, forecast)
+future = model.make_future_dataframe(periods=period)
+forecast = model.predict(future)
+
+
+forecast['date']  = forecast['ds']
+#forecast['open'] = forecast['yhat']
+#forecast['high'] = forecast['yhat_upper']
+#forecast['low'] = forecast['yhat_lower']
+forecast['close'] = forecast['yhat']
+#forecast['adj_close'] = forecast['yhat']
+#forecast['trend'] = forecast['trend']
+
+# Display forecast data
+st.subheader(f'Forecast data for the next {n_months} months')
+st.write(forecast[['date', 'close']].tail(n_months * period))
+
+st.write(f'Forecast plot for {n_months} months')
+fig1 = plot_plotly(model, forecast)
 st.plotly_chart(fig1)
-
-st.write("Forecast components")
-fig2 = m.plot_components(forecast)
-st.write(fig2)
