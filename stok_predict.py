@@ -9,9 +9,11 @@ st.set_page_config(layout='wide', initial_sidebar_state='expanded')
 
 st.sidebar.header('Dashboard')
 
-st.title('BRI Stock Forecast Web')
+st.title('Stock Forecast Web')
 
-stock = ('BBRI.JK')
+st.sidebar.subheader('Heat map parameter')
+stocks = ('BBRI.JK', 'GOOG', 'AAPL', 'MSFT', 'GME')
+selected_stock = st.sidebar.selectbox('Select dataset for prediction', stocks)
 
 n_months = 1
 period = 30*n_months
