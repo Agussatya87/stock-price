@@ -26,7 +26,7 @@ def load_data(ticker):
     data.reset_index(inplace=True)
     return data
 
-data = load_data(stock)
+data = load_data(stocks)
 
 # Display raw data
 st.subheader('Raw data')
